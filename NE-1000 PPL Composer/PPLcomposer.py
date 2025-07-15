@@ -63,7 +63,7 @@ params = []
 
 # Handling each step type input and parameters
 if step_type == "DIA":
-    # For diameter step, user selects syringe volume to determine diameter in mm
+    # For diameter step, user selects syringe volume to determine diameter in mm and only for Termuno syringes
     volumeselect = st.selectbox("Volume Syringe", ["10 ml", "20 ml", "30 ml", "60 ml"])
     dia = {
         "10 ml": 15.8,
