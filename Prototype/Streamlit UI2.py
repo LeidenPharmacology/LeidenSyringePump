@@ -131,15 +131,12 @@ for idx, (pid, steps) in enumerate(sorted_pumps):
             if i > 0:
                 if col2.button("↑", key=f"up_{pid}_{i}"):
                     steps[i-1], steps[i] = steps[i], steps[i-1]     
-                    st_autorefresh(interval=10, limit=2, key="fizzbuzzcounter")
             else:
                 col2.write("")  # blank for alignment
-                st_autorefresh(interval=10, limit=2, key="fizzbuzzccounter")
         
             # Delete button
             if col3.button("❌", key=f"del_{pid}_{i}"):
                 steps.pop(i)
-                st_autorefresh(interval=10, limit=2, key="test")
 
 # Check for pumps that have steps but no diameter
 missing_dia_pumps = [
@@ -223,7 +220,18 @@ else:
             zf.writestr(filename, script)
     
     zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
+    
+if "should_refresh" not in st.session_state:
+    st.session_state.should_refresh = False
 
+if st.button("Refresh screen"):
+    # perform your move-up logic here
+    st.session_state.should_refresh = True
+
+if st.session_state.should_refresh:
+    st_autorefresh(interval=100, limit=1, key="manual_refresh_trigger")
+    st.session_state.should_refresh = False
+    
 # Let user input a custom filename for the ZIP (without extension)
 custom_filename = st.text_input("📁 Enter ZIP filename (without .zip)", value="all_pumps_scripts")
 
