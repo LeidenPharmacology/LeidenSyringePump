@@ -220,15 +220,19 @@ else:
             zf.writestr(filename, script)
     
     zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
-    
+
+#quick and dirty way to fix the refresh of the changes. Maybe in the future the rerun function is back
+#First start with getting the variable to initialize
 if "should_refresh" not in st.session_state:
     st.session_state.should_refresh = False
 
 if st.button("Refresh screen"):
-    # perform your move-up logic here
+    # IF this button is pressed the state should be to true
     st.session_state.should_refresh = True
 
+#this check is to see if the refresh is true causing an manual refresh that should not repeat
 if st.session_state.should_refresh:
+    #again placeholder as true refresh is not automatic or easy
     st_autorefresh(interval=100, limit=1, key="manual_refresh_trigger")
     st.session_state.should_refresh = False
     
