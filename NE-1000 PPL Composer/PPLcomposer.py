@@ -145,6 +145,29 @@ missing_dia_pumps = [
     if steps and pid not in st.session_state.pump_headers
 ]
 
+#quick and dirty way to fix the refresh of the changes. Maybe in the future the rerun function is back
+#First start with getting the variable to initialize
+if "should_refresh" not in st.session_state:
+    st.session_state.should_refresh = False
+
+if st.button("Refresh screen"):
+    # IF this button is pressed the state should be to true
+    st.session_state.should_refresh = True
+
+#this check is to see if the refresh is true causing an manual refresh that should not repeat
+if st.session_state.should_refresh:
+    #again placeholder as true refresh is not automatic or easy
+    st_autorefresh(interval=100, limit=1, key="manual_refresh_trigger")
+    st.session_state.should_refresh = False
+    
+
+# Let user input a custom filename for the ZIP (without extension)
+custom_filename = st.text_input("📁 Enter ZIP filename (without .zip)", value="all_pumps_scripts")
+
+# Sanitize the filename
+safe_filename = sanitize_filename(custom_filename)
+
+
 if missing_dia_pumps:
     st.error(f"⛔ Pumps {', '.join(missing_dia_pumps)} have steps but no diameter set!")
 else:
@@ -221,26 +244,7 @@ else:
     
     zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
 
-#quick and dirty way to fix the refresh of the changes. Maybe in the future the rerun function is back
-#First start with getting the variable to initialize
-if "should_refresh" not in st.session_state:
-    st.session_state.should_refresh = False
 
-if st.button("Refresh screen"):
-    # IF this button is pressed the state should be to true
-    st.session_state.should_refresh = True
-
-#this check is to see if the refresh is true causing an manual refresh that should not repeat
-if st.session_state.should_refresh:
-    #again placeholder as true refresh is not automatic or easy
-    st_autorefresh(interval=100, limit=1, key="manual_refresh_trigger")
-    st.session_state.should_refresh = False
-    
-# Let user input a custom filename for the ZIP (without extension)
-custom_filename = st.text_input("📁 Enter ZIP filename (without .zip)", value="all_pumps_scripts")
-
-# Sanitize the filename
-safe_filename = sanitize_filename(custom_filename)
 
 # Provide a download button for the ZIP archive
 if st.download_button(
