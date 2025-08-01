@@ -15,8 +15,8 @@ def sanitize_filename(name):
     return name[:100]  # Optional: limit to 100 characters
 
 # Configure the Streamlit page layout and title
-st.set_page_config(page_title="NE-1000 PPL Composer", layout="wide")
-st.title("📟 NE-1000 PPL Step Composer")
+st.set_page_config(page_title="Magic carpet: NE-1000 PPL Composer", layout="wide")
+st.title("Magic carpet: 📿 NE-1000 PPL Step Composer")
 
 # Initialize session state dictionaries to store pump steps and pump headers (diameter info)
 if "multi_ppl_steps" not in st.session_state:
@@ -111,6 +111,13 @@ elif step_type in ["LPS", "BEP"]:
 if step_type != "DIA" and st.button("➕ Add Step to Pump"):
     st.session_state.multi_ppl_steps[real_pump_addr].append(params)
 
+syringe_max_volume_map = {
+    15.8: 10,
+    20.15: 20,
+    23.1: 30,
+    29.7: 60
+}
+
 # Display the steps added for each pump in separate columns
 sorted_pumps = sorted(st.session_state.multi_ppl_steps.items(), key=lambda x: int(x[0]))
 cols = st.columns(len(sorted_pumps))
@@ -121,6 +128,25 @@ for idx, (pid, steps) in enumerate(sorted_pumps):
     user_label = str(int(pid) + 1)  # Convert pump address back to 1-based label
     with cols[idx]:
         st.subheader(f"Pump {user_label}")
+    
+        dia = st.session_state.pump_headers.get(pid)
+        max_vol = syringe_max_volume_map.get(dia, None)
+        assigned_vol = sum(step[3] for step in steps if step[0] == "RAT_VOL")
+    
+        if max_vol:
+            raw_percent = (assigned_vol / max_vol) * 100
+            percent = min(100, raw_percent)
+            st.caption(f"💧 Assigned Volume: **{assigned_vol:.2f} mL** / Max {max_vol} mL")
+            if raw_percent > 100:
+                st.error("⛔ Over capacity!")
+            elif raw_percent == 100:
+                st.warning("⛔ At capacity")
+            elif raw_percent >= 80:
+                st.warning("⚠️ Near capacity")
+            st.progress(min(100, int(percent)))
+        else:
+            st.caption(f"💧 Assigned Volume: **{assigned_vol:.2f} mL**")
+
         # Display each step with an option to delete it
         for i, step in enumerate(steps):
             step_display = f"{i+1:02d}. {' '.join(str(x) for x in step)}"
@@ -244,7 +270,32 @@ else:
     
     zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
 
+# Collect errors per pump
+volume_exceeded_errors = []
 
+# Check each pump
+for pid, steps in st.session_state.multi_ppl_steps.items():
+    if not steps or pid not in st.session_state.pump_headers:
+        continue
+
+    diameter = st.session_state.pump_headers[pid]
+    max_volume = syringe_max_volume_map.get(diameter)
+    if not max_volume:
+        continue  # Unknown syringe type, skip
+
+    total_vol = 0
+    for step in steps:
+        if step[0] == "RAT_VOL":
+            vol = step[3]  # step = ["RAT_VOL", rate, unit, volume, dirc]
+            total_vol += vol
+
+    if total_vol > max_volume:
+        human_pid = str(int(pid) + 1)
+        volume_exceeded_errors.append(f"⛔ Pump {human_pid} total volume {total_vol} mL exceeds syringe max {max_volume} mL")
+
+# Show warnings if any
+for err in volume_exceeded_errors:
+    st.error(err)
 
 # Provide a download button for the ZIP archive
 if st.download_button(

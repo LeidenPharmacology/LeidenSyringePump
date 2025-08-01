@@ -72,33 +72,35 @@ def read_zip_contents(zip_path):
 
 
 # Example usage block
-if __name__ == '__main__':
-    zip_file_path = 'C://Users//jornb//Documents//GitHub//Serialpump//test ppl//Leukenaam.zip'  # Replace with your actual zip file path
-    data, lines, vars_dict = read_zip_contents(zip_file_path)
-    
-    pump_jobs={}
-    linelist= []
-    for i, j in vars_dict.items():
-        i = i.removesuffix("_script")
-        i = i.split("_")
-        i = ''.join(i)
-        for line in j.split('\n'):
-            line = line.strip()
-            if not("*") in line and line:
-                linelist.append(line)
-        
-        pump_jobs[i] = linelist
-    
-    
-    x = 0
-    for pump in pump_jobs:
-        name = pump
-        globals()[name] =  x
-        x= x+1
-    
-    
-    
-    
+# =============================================================================
+# if __name__ == '__main__':
+#     zip_file_path = 'C://Users//jornb//Documents//GitHub//Serialpump//test ppl//Leukenaam.zip'  # Replace with your actual zip file path
+#     data, lines, vars_dict = read_zip_contents(zip_file_path)
+#     
+#     pump_jobs={}
+#     linelist= []
+#     for i, j in vars_dict.items():
+#         i = i.removesuffix("_script")
+#         i = i.split("_")
+#         i = ''.join(i)
+#         for line in j.split('\n'):
+#             line = line.strip()
+#             if not("*") in line and line:
+#                 linelist.append(line)
+#         
+#         pump_jobs[i] = linelist
+#     
+#     
+#     x = 0
+#     for pump in pump_jobs:
+#         name = pump
+#         globals()[name] =  x
+#         x= x+1
+#     
+#     
+#     
+#     
+# =============================================================================
     
     
     
