@@ -6,34 +6,6 @@ import zipfile
 import re
 from streamlit_autorefresh import st_autorefresh
 
-def calculate_total_volume_with_loops(steps):
-    def resolve(steps):
-        total = 0
-        i = 0
-        while i < len(steps):
-            step = steps[i]
-            if step[0] == "LPS":
-                loop_block = []
-                i += 1
-                while i < len(steps) and steps[i][0] != "LOP":
-                    loop_block.append(steps[i])
-                    i += 1
-
-                if i < len(steps) and steps[i][0] == "LOP":
-                    loop_count = steps[i][1]  # e.g., ["LOP", 3]
-                    loop_vol = resolve(loop_block)
-                    total += loop_vol * loop_count
-                else:
-                    # Unmatched LPS without LOP: ignore loop semantics
-                    total += resolve(loop_block)
-            else:
-                if step[0] == "RAT_VOL":
-                    total += step[3]  # step = ["RAT_VOL", rate, unit, volume, direction]
-            i += 1
-        return total
-
-    return resolve(steps)
-
 def sanitize_filename(name):
     """Sanitize the filename to remove unsafe characters."""
     name = name.strip()
@@ -298,8 +270,10 @@ else:
     
     zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
 
+# Collect errors per pump
 volume_exceeded_errors = []
 
+# Check each pump
 for pid, steps in st.session_state.multi_ppl_steps.items():
     if not steps or pid not in st.session_state.pump_headers:
         continue
@@ -307,14 +281,17 @@ for pid, steps in st.session_state.multi_ppl_steps.items():
     diameter = st.session_state.pump_headers[pid]
     max_volume = syringe_max_volume_map.get(diameter)
     if not max_volume:
-        continue
+        continue  # Unknown syringe type, skip
 
-    total_vol = calculate_total_volume_with_loops(steps)
+    total_vol = 0
+    for step in steps:
+        if step[0] == "RAT_VOL":
+            vol = step[3]  # step = ["RAT_VOL", rate, unit, volume, dirc]
+            total_vol += vol
+
     if total_vol > max_volume:
         human_pid = str(int(pid) + 1)
-        volume_exceeded_errors.append(
-            f"\u26d4 Pump {human_pid} total volume {total_vol:.2f} mL exceeds syringe max {max_volume} mL"
-        )
+        volume_exceeded_errors.append(f"⛔ Pump {human_pid} total volume {total_vol} mL exceeds syringe max {max_volume} mL")
 
 # Show warnings if any
 for err in volume_exceeded_errors:
