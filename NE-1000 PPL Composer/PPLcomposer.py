@@ -1,10 +1,71 @@
 import streamlit as st
 import json
 import pandas as pd
+import xlsxwriter
 import io
 import zipfile
 import re
 from streamlit_autorefresh import st_autorefresh
+
+def flatten_steps(steps):
+    flat = []
+    i = 0
+    while i < len(steps):
+        step = steps[i]
+        if step[0] == "LPS":
+            loop_block = []
+            i += 1
+            while i < len(steps) and steps[i][0] != "LOP":
+                loop_block.append(steps[i])
+                i += 1
+            if i < len(steps) and steps[i][0] == "LOP":
+                loop_count = steps[i][1]
+                for _ in range(loop_count):
+                    flat.extend(flatten_steps(loop_block))
+            else:
+                flat.extend(flatten_steps(loop_block))
+        else:
+            flat.append(step)
+        i += 1
+    return flat
+
+def calculate_step_timeline(flat_steps):
+    timeline = []
+    time_sec = 0.0
+    for idx, step in enumerate(flat_steps, 1):
+        cmd = step[0]
+        duration_sec = 0.0
+
+        if cmd == "RAT_VOL":
+            rate = step[1]
+            vol = step[3]
+            unit = step[2]
+            if unit == "mL/hr":
+                rate_ml_per_hr = rate
+            elif unit == "mL/min":
+                rate_ml_per_hr = rate * 60
+            elif unit == "µL/hr":
+                rate_ml_per_hr = rate / 1000
+            elif unit == "µL/min":
+                rate_ml_per_hr = rate / 1000 * 60
+            else:
+                rate_ml_per_hr = rate
+
+            duration_sec = (vol / rate_ml_per_hr) * 3600 if rate_ml_per_hr > 0 else 0
+
+        elif cmd == "PAS":
+            duration_sec = step[1]
+
+        timeline.append({
+            "Step": idx,
+            "Start Time": pd.to_timedelta(time_sec, unit="s"),
+            "Duration (s)": round(duration_sec, 2),
+            "Description": " ".join(str(x) for x in step)
+        })
+
+        time_sec += duration_sec
+
+    return timeline
 
 def calculate_total_volume_with_loops(steps):
     def resolve(steps):
@@ -221,6 +282,18 @@ custom_filename = st.text_input("📁 Enter ZIP filename (without .zip)", value=
 # Sanitize the filename
 safe_filename = sanitize_filename(custom_filename)
 
+all_timelines = []
+for pid, steps in st.session_state.multi_ppl_steps.items():
+    if not steps:
+        continue
+    flat = flatten_steps(steps)
+    timeline = calculate_step_timeline(flat)
+    df = pd.DataFrame(timeline)
+    df.insert(0, "Pump", int(pid) + 1)
+    all_timelines.append(df)
+
+final_df = pd.concat(all_timelines, ignore_index=True) if all_timelines else pd.DataFrame()
+csv_data = final_df.to_csv(index=False).encode("utf-8")
 
 if missing_dia_pumps:
     st.error(f"⛔ Pumps {', '.join(missing_dia_pumps)} have steps but no diameter set!")
@@ -228,16 +301,12 @@ else:
     # Prepare an in-memory ZIP archive for all pump scripts
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w") as zf:
-        # Iterate pumps and their steps to generate pump program scripts
+        # Write individual .ppl files
         for pid, steps in st.session_state.multi_ppl_steps.items():
-            # Skip pumps without steps or without diameter info
             if not steps or pid not in st.session_state.pump_headers:
                 continue
     
-            # Get diameter for pump header
             dia = st.session_state.pump_headers[pid]
-    
-            # Static header for pump program file
             header = [
                 f"DIA{dia}",
                 f"VOL\tML",
@@ -246,22 +315,17 @@ else:
                 "PF\t0",
                 "BP\t0",
                 ";*********************************************************************",
-                "",
-                "",
-                "",
-                "",
+                "", "", "", "",
                 ";*********************************************************************"
             ]
     
             program = []
-            # Build the program steps in pump script format
             for i, step in enumerate(steps):
                 cmd = step[0]
-                phn = f"PHN\t{i+1}"  # Step number line
+                phn = f"PHN\t{i+1}"
                 fun = ""
                 sublines = []
     
-                # Format the step based on its command type
                 if cmd == "RAT_CONT":
                     fun = "FUN\tRAT"
                     rate, unit, dirc = step[1], unit_map.get(step[2], step[2]), step[3]
@@ -274,29 +338,28 @@ else:
     
                 elif cmd in ["PAS", "LOP"]:
                     fun = f"FUN\t{cmd}\t{step[1]}"
-                    sublines = [f""]
+                    sublines = [""]
     
                 elif cmd in ["LPS", "BEP"]:
                     fun = f"FUN\t{cmd}"
     
-                # Compose full block for the step
                 block = [phn, fun] + sublines + ["", "", "", ";*********************************************************************"]
                 program.extend(block)
     
-            # Add final stop step at the end of the program
+            # Final stop
             phn = f"PHN\t{len(steps)+1}"
             fun = "FUN\tSTP"
             block = [phn, fun, "", "", "", ";*********************************************************************"]
             program.extend(block)
     
-            # Combine header and program steps into full script text
             script = "\n".join(header + program)
+            zf.writestr(f"pump_{pid}_script.ppl", script)
     
-            # Write the script into the ZIP archive as a .ppl file
-            filename = f"pump_{pid}_script.ppl"
-            zf.writestr(filename, script)
-    
-    zip_buffer.seek(0)  # Reset pointer to start of the ZIP buffer
+        # ✅ Add the timeline CSV into the ZIP
+        if not final_df.empty:
+            zf.writestr("timeline.csv", csv_data)
+        
+    zip_buffer.seek(0)  # Reset buffer
 
 volume_exceeded_errors = []
 
@@ -316,18 +379,29 @@ for pid, steps in st.session_state.multi_ppl_steps.items():
             f"\u26d4 Pump {human_pid} total volume {total_vol:.2f} mL exceeds syringe max {max_volume} mL"
         )
 
+
 # Show warnings if any
 for err in volume_exceeded_errors:
     st.error(err)
 
-# Provide a download button for the ZIP archive
+# 🟩 Unified download button for ZIP (pumps + timeline)
 if st.download_button(
-    label="💾 Download All Pumps as ZIP",
+    label="💾 Download All Pumps + Timeline ZIP",
     data=zip_buffer,
     file_name=safe_filename,
     mime="application/zip"
 ):
     st.success(f"{safe_filename} is ready to download!")
+
+# 🟨 Separate button for CSV only download
+if not final_df.empty:
+    st.download_button(
+        label="📄 Download Timeline Only (CSV)",
+        data=csv_data,
+        file_name="pump_timelines.csv",
+        mime="text/csv"
+    )
+
 
 # Button to clear all steps and pump headers from session state
 if st.button("❌ Clear All Steps"):
