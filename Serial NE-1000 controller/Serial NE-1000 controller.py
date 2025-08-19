@@ -6,11 +6,22 @@ from pathlib import Path
 from collections import defaultdict 
 import re
 import FreeSimpleGUI as sg
+import pandas as pd
+from io import StringIO
+from datetime import datetime, timedelta
+import time
 
 #custommodules
 from Custommodules import Unzipper
 from Custommodules import Serialfinder
 from Custommodules import Pumpcontroller
+
+
+def send_commands_to_pump(name, commands):
+    for cmd in commands:
+        cmd = cmd.strip()
+        if cmd and "*" not in cmd:
+            Pumpcontroller.NewEraSyringePump.send_command(globals()[name], cmd)
 
 def mainwindow(comlist):
     layout = [
@@ -19,7 +30,6 @@ def mainwindow(comlist):
         [sg.B("Save input", button_color= "black on yellow"), sg.B("Start", button_color='green', disabled= True), sg.B("Close", button_color= 'tomato')]
          ]
     return sg.Window('Jasmine: Serial NE-1000 controller', layout, finalize = True) 
-
 
 
 comlist = Serialfinder.serial_ports()
@@ -34,6 +44,11 @@ while True:
     if event == 'Close' or  event == sg.WIN_CLOSED:
         if window == window1:
             window.close()
+            try:
+                shared_serial.close()
+                shared_serial = []
+            except:
+                print("OK")
             break
     
     if event == 'Save input':
@@ -46,11 +61,16 @@ while True:
         #using the data gotten to split the lines per pump and 
         pump_jobs={}
         for i in vars_dict:
-            linelist = vars_dict[i]
-            i = i.removesuffix("_script")
-            i = i.split("_")
-            i = ''.join(i)
-            pump_jobs[i] = linelist
+            if "_script" in i:
+                linelist = vars_dict[i]
+                i = i.removesuffix("_script")
+                i = i.split("_")
+                i = ''.join(i)
+                pump_jobs[i] = linelist
+                
+            else:
+                df = vars_dict[i]
+                df = pd.read_csv(StringIO(df))
 
         #start of the preparations for serial connections
         shared_serial = serial.Serial(
@@ -66,19 +86,26 @@ while True:
         
         time.sleep(0.075)
         
-        #opening seperate pump channels with addresses
         y = 0
+        threads = []
+        
         for pump in pump_jobs:
-            line = pump_jobs[pump]
-            line = line.split('\n')
+            line = pump_jobs[pump].split('\n')
             name = pump
-            globals()[name] =  Pumpcontroller.NewEraSyringePump(shared_serial, y)
+            globals()[name] = Pumpcontroller.NewEraSyringePump(shared_serial, y)
             print(name + " Confirms", globals()[name].query_address())
-            for x in line:
-                x = x.strip()
-                if not("*") in x and x:
-                    Pumpcontroller.NewEraSyringePump.send_command(globals()[name], x)   
-            y= y+1
+        
+            # Create and start a thread to send commands for this pump
+            thread = threading.Thread(target=send_commands_to_pump, args=(name, line))
+            thread.start()
+            threads.append(thread)
+
+            y += 1
+
+        
+        # Wait for all threads to finish
+        for thread in threads:
+            thread.join()
         
         window['Start'].update(disabled=False)
         window['Start'].update(button_color = 'green')

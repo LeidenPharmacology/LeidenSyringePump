@@ -134,6 +134,9 @@ user_pump_id = st.selectbox("Pump", list(pump_name_to_address.keys()))
 # Convert selected pump to internal address string
 real_pump_addr = pump_name_to_address[user_pump_id]
 
+# Advanced mode --> remove warnings 
+advancedmode = st.checkbox("Advanced mode?", value = False)
+
 # Show current diameter for selected pump, if set
 current_dia = st.session_state.pump_headers.get(real_pump_addr)
 if current_dia:
@@ -226,11 +229,11 @@ for idx, (pid, steps) in enumerate(sorted_pumps):
             raw_percent = (assigned_vol / max_vol) * 100
             percent = min(100, raw_percent)
             st.caption(f"💧 Assigned Volume: **{assigned_vol:.2f} mL** / Max {max_vol} mL")
-            if raw_percent > 100:
+            if raw_percent > 100 and advancedmode == False:
                 st.error("⛔ Over capacity!")
-            elif raw_percent == 100:
+            elif raw_percent == 100 and advancedmode == False:
                 st.warning("⛔ At capacity")
-            elif raw_percent >= 80:
+            elif raw_percent >= 80 and advancedmode == False:
                 st.warning("⚠️ Near capacity")
             st.progress(min(100, int(percent)))
         else:
@@ -373,7 +376,7 @@ for pid, steps in st.session_state.multi_ppl_steps.items():
         continue
 
     total_vol = calculate_total_volume_with_loops(steps)
-    if total_vol > max_volume:
+    if total_vol > max_volume and advancedmode == False :
         human_pid = str(int(pid) + 1)
         volume_exceeded_errors.append(
             f"\u26d4 Pump {human_pid} total volume {total_vol:.2f} mL exceeds syringe max {max_volume} mL"

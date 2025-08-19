@@ -19,7 +19,7 @@ class NewEraSyringePump:
 
     def read_response(self):
         with NewEraSyringePump._write_lock:
-            response = self.ser.readline().decode().strip()
+            response = self.ser.readline().decode('utf-8', errors='ignore').strip()
         if response:
             print(f"[RECV][{self.pump_address}] {response}")
         return response
@@ -36,7 +36,12 @@ class NewEraSyringePump:
         self.send_command("RUN")
 
     def stop_pump(self):
-        self.send_command("STP")
+        full_command = f"{self.pump_address}STP\r\n"
+        print(f"[SEND][{self.pump_address}] STP")
+        with NewEraSyringePump._write_lock:
+            self.ser.write(full_command.encode())
+        time.sleep(0.075)
+        
 
     def set_diameter(self, diameter):
         self.send_command(f"DIA {diameter}")
@@ -97,56 +102,3 @@ class NewEraSyringePump:
     def beep(self):
         self.send_command("BEP")
 
-
-# =============================================================================
-# # ------- Usage Example ------- #
-# 
-# shared_serial = serial.Serial(
-#     port="COM4",
-#     baudrate=19200,
-#     parity=serial.PARITY_NONE,
-#     bytesize=8,
-#     stopbits=1,
-#     timeout=0.5,
-#     xonxoff=0,
-#     rtscts=0
-# )
-# time.sleep(0.075)
-# 
-# for addr in range(10):
-#     test_pump = NewEraSyringePump(shared_serial, addr)
-#     response = test_pump.verify_presence()
-#     if response:
-#         print(f"Pump {addr:02d} is present: {response}")
-#     else:
-#         print(f"Pump {addr:02d} not found or no response")
-#     time.sleep(0.25)
-# 
-# pump0 = NewEraSyringePump(shared_serial, 0)
-# pump1 = NewEraSyringePump(shared_serial, 1)
-# 
-# print("Pump 0 confirms: ", pump0.query_address())
-# print("Pump 1 confirms: ", pump1.query_address())
-# 
-# pump0.reset_pump()
-# pump0.set_diameter(26.59)
-# pump1.safe_reset()
-# pump1.set_diameter(26.59)
-# 
-# pump_jobs = [
-#     (pump0, (500, "MH", 4, "ML", 0)),
-#     (pump1, (250, "MH", 2, "ML", 1)),
-# ]
-# 
-# threads = []
-# for pump, args in pump_jobs:
-#     t = threading.Thread(target=pump.run_RATE_function, args=args)
-#     t.start()
-#     threads.append(t)
-# 
-# for t in threads:
-#     t.join()
-# 
-# shared_serial.close()
-# 
-# =============================================================================
