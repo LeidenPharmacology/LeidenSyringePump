@@ -56,9 +56,9 @@ def Pumpwindow(pump_count):
 
     for i in range(pump_count):
         col = sg.Column([
-            [sg.Text(f"Pump{i+1}", size=(20, 1), justification='center', relief='ridge')],
+            [sg.Text(f"Pump{i+1}", size=(40, 1), justification='center', relief='ridge')],
             [sg.Text("Current phase", key=f"PHASE_{i}", size=(40, 1), justification='center', relief='ridge')],
-            [sg.ProgressBar(100, orientation='h', size=(20, 20), key=f"PROGRESS_{i}")]
+            [sg.ProgressBar(100, orientation='h', size=(25, 20), key=f"PROGRESS_{i}")]
         ], element_justification='center', pad=(10, 10))
 
         pump_columns.append(col)
