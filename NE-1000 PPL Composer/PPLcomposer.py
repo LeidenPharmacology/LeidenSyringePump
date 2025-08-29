@@ -156,12 +156,13 @@ params = []
 # Handling each step type input and parameters
 if step_type == "DIA":
     # For diameter step, user selects syringe volume to determine diameter in mm and only for Termuno syringes
-    volumeselect = st.selectbox("Volume Syringe", ["10 ml", "20 ml", "30 ml", "60 ml"])
+    volumeselect = st.selectbox("Volume Syringe", ["10 ml", "20 ml", "30 ml", "60 ml", "60 ml Henk"])
     dia = {
         "10 ml": 15.8,
         "20 ml": 20.15,
         "30 ml": 23.1,
-        "60 ml": 29.7
+        "60 ml": 29.7,
+        "60 ml Henk": 26.7,
     }[volumeselect]
     
     # Confirm button sets the diameter for the selected pump in session state
@@ -207,6 +208,7 @@ syringe_max_volume_map = {
     15.8: 10,
     20.15: 20,
     23.1: 30,
+    26.7: 61,
     29.7: 60
 }
 
