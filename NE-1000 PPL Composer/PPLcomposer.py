@@ -218,15 +218,17 @@ cols = st.columns(len(sorted_pumps))
 
 for idx, (pid, steps) in enumerate(sorted_pumps):
     if not steps:
-        continue  # Skip pumps with no steps
-    user_label = str(int(pid) + 1)  # Convert pump address back to 1-based label
+        continue
+    user_label = str(int(pid) + 1)
     with cols[idx]:
         st.subheader(f"Pump {user_label}")
-    
+
         dia = st.session_state.pump_headers.get(pid)
         max_vol = syringe_max_volume_map.get(dia, None)
-        assigned_vol = sum(step[3] for step in steps if step[0] == "RAT_VOL")
-    
+
+        # ✅ FIX: use recursive function to include looped volume
+        assigned_vol = calculate_total_volume_with_loops(steps)
+
         if max_vol:
             raw_percent = (assigned_vol / max_vol) * 100
             percent = min(100, raw_percent)
@@ -241,20 +243,15 @@ for idx, (pid, steps) in enumerate(sorted_pumps):
         else:
             st.caption(f"💧 Assigned Volume: **{assigned_vol:.2f} mL**")
 
-        # Display each step with an option to delete it
         for i, step in enumerate(steps):
             step_display = f"{i+1:02d}. {' '.join(str(x) for x in step)}"
             col1, col2, col3 = st.columns([7, 1, 1])
             col1.text(step_display)
-            
-            # Move Up button - disabled if first step
             if i > 0:
                 if col2.button("↑", key=f"up_{pid}_{i}"):
-                    steps[i-1], steps[i] = steps[i], steps[i-1]     
+                    steps[i-1], steps[i] = steps[i], steps[i-1]
             else:
-                col2.write("")  # blank for alignment
-        
-            # Delete button
+                col2.write("")
             if col3.button("❌", key=f"del_{pid}_{i}"):
                 steps.pop(i)
 
