@@ -8,26 +8,52 @@ import re
 from streamlit_autorefresh import st_autorefresh
 
 def flatten_steps(steps):
-    flat = []
-    i = 0
-    while i < len(steps):
-        step = steps[i]
-        if step[0] == "LPS":
-            loop_block = []
-            i += 1
-            while i < len(steps) and steps[i][0] != "LOP":
-                loop_block.append(steps[i])
+    """
+    Flatten a list of steps containing nested LPS/LOP loops.
+    Ensures each LOP pairs with the nearest previous unmatched LPS.
+    """
+
+    def resolve_block(block):
+        i = 0
+        output = []
+        lps_stack = []
+
+        while i < len(block):
+            cmd = block[i][0]
+
+            # Mark loop start
+            if cmd == "LPS":
+                lps_stack.append(i)
                 i += 1
-            if i < len(steps) and steps[i][0] == "LOP":
-                loop_count = steps[i][1]
+                continue
+
+            # Close loop → match nearest previous LPS
+            if cmd == "LOP":
+                loop_count = block[i][1]
+
+                if not lps_stack:
+                    output.append(block[i])
+                    i += 1
+                    continue
+
+                start = lps_stack.pop()
+                inner_block = block[start + 1 : i]
+                expanded = resolve_block(inner_block)
+
                 for _ in range(loop_count):
-                    flat.extend(flatten_steps(loop_block))
-            else:
-                flat.extend(flatten_steps(loop_block))
-        else:
-            flat.append(step)
-        i += 1
-    return flat
+                    output.extend(expanded)
+
+                i += 1
+                continue
+
+            # Normal step
+            output.append(block[i])
+            i += 1
+
+        return output
+
+    return resolve_block(steps)
+
 
 def calculate_step_timeline(flat_steps):
     timeline = []
