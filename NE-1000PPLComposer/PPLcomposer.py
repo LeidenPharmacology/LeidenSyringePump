@@ -6,6 +6,7 @@ import io
 import zipfile
 import re
 from streamlit_autorefresh import st_autorefresh
+from datetime import timedelta
 
 def flatten_steps(steps):
     """
@@ -84,7 +85,7 @@ def calculate_step_timeline(flat_steps):
 
         timeline.append({
             "Step": idx,
-            "Start Time": pd.to_timedelta(time_sec, unit="s"),
+            "Start Time": str(timedelta(seconds=time_sec)),
             "Duration (s)": round(duration_sec, 2),
             "Description": " ".join(str(x) for x in step)
         })
