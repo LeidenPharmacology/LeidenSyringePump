@@ -4,3 +4,8 @@ Serial NE-1000 controller/Custommodules/__pycache__/__init__.cpython-313.pyc
 Serial NE-1000 controller/Custommodules/__pycache__/Pumpcontroller.cpython-313.pyc
 Serial NE-1000 controller/Custommodules/__pycache__/Serialfinder.cpython-313.pyc
 Serial NE-1000 controller/Custommodules/__pycache__/Unzipper.cpython-313.pyc
+__pycache__/
+*.pyc
+.env
+venv/
+.streamlit/secrets.toml

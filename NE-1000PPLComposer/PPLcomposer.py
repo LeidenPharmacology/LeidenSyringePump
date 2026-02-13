@@ -1,3 +1,14 @@
+"""
+Streamlit Application: NE-1000 Pump PPL Composer
+@author: jornb
+
+This app allows users to:
+- Configure syringe diameters per pump
+- Compose step-based pump programs (including loops)
+- Validate assigned volume vs syringe capacity
+- Export .ppl scripts + execution timeline (CSV) as ZIP
+"""
+
 import streamlit as st
 import json
 import pandas as pd
@@ -57,6 +68,16 @@ def flatten_steps(steps):
 
 
 def calculate_step_timeline(flat_steps):
+    """
+    Calculate execution timeline for flat steps.
+
+    Returns:
+        List of dict:
+            - Step number
+            - Start time
+            - Duration
+            - Human-readable description
+            """
     timeline = []
     time_sec = 0.0
     for idx, step in enumerate(flat_steps, 1):
@@ -95,6 +116,9 @@ def calculate_step_timeline(flat_steps):
     return timeline
 
 def calculate_total_volume_with_loops(steps):
+    """
+    Recursively calculate total volume including loop expansions.
+    """
     def resolve(steps):
         total = 0
         i = 0
@@ -231,6 +255,7 @@ elif step_type in ["LPS", "BEP"]:
 if step_type != "DIA" and st.button("➕ Add Step to Pump"):
     st.session_state.multi_ppl_steps[real_pump_addr].append(params)
 
+#mapping syringe max volume to the diameter (which is selectable)
 syringe_max_volume_map = {
     15.8: 10,
     20.15: 20,
@@ -253,7 +278,7 @@ for idx, (pid, steps) in enumerate(sorted_pumps):
         dia = st.session_state.pump_headers.get(pid)
         max_vol = syringe_max_volume_map.get(dia, None)
 
-        # ✅ FIX: use recursive function to include looped volume
+        # If a loop exists make sure that the total volume is recalculated
         assigned_vol = calculate_total_volume_with_loops(steps)
 
         if max_vol:
@@ -324,6 +349,7 @@ for pid, steps in st.session_state.multi_ppl_steps.items():
 final_df = pd.concat(all_timelines, ignore_index=True) if all_timelines else pd.DataFrame()
 csv_data = final_df.to_csv(index=False).encode("utf-8")
 
+#make sure that the user has a dia selected for the pump they want to do steps with.
 if missing_dia_pumps:
     st.error(f"⛔ Pumps {', '.join(missing_dia_pumps)} have steps but no diameter set!")
 else:
