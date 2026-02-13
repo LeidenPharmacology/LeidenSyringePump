@@ -4,12 +4,14 @@ import threading
 
 class NewEraSyringePump:
     _write_lock = threading.Lock()
-
+    
+    #Initializes the pump with the correct serial connection
     def __init__(self, serial_connection, address):
         self.pump_address = f"{int(address):02d}"
         self.ser = serial_connection
         print(f"[INIT] Pump initialized with address {self.pump_address}")
-
+    
+    #Sending commands with a sleep timer to give the pump time to respond
     def send_command(self, command):
         full_command = f"{self.pump_address}{command}\r\n"
         print(f"[SEND][{self.pump_address}] {full_command.strip()}")
@@ -17,6 +19,7 @@ class NewEraSyringePump:
             self.ser.write(full_command.encode())
         time.sleep(0.075)
 
+    #Reads the response of the pump and gives that to the user. Normally not used in the NE-1000 simple controller 
     def read_response(self):
         with NewEraSyringePump._write_lock:
             response = self.ser.readline().decode('utf-8', errors='ignore').strip()

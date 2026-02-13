@@ -1,3 +1,13 @@
+"""
+Serial NE-1000 controller
+@author: jornb
+
+- Controls pump though COM commands made by the composer
+- Uses FreeSimpleGUI for the UI element of this code
+- Simpler version of the controller (more advanced version not yet published)
+"""
+
+#packages used in this 
 import serial
 import time
 import threading
@@ -11,18 +21,19 @@ from io import StringIO
 from datetime import datetime, timedelta
 import time
 
-#custommodules
+# Custommodules
 from Custommodules import Unzipper
 from Custommodules import Serialfinder
 from Custommodules import Pumpcontroller
 
-
+# Sending commands to the pump via the custom module.
 def send_commands_to_pump(name, commands):
     for cmd in commands:
         cmd = cmd.strip()
         if cmd and "*" not in cmd:
             Pumpcontroller.NewEraSyringePump.send_command(globals()[name], cmd)
 
+#GUI
 def mainwindow(comlist):
     layout = [
         [sg.T("Select COM port"), sg.Combo(comlist, key= "comselect")],
@@ -31,12 +42,13 @@ def mainwindow(comlist):
          ]
     return sg.Window('Jasmine: Serial NE-1000 controller', layout, finalize = True) 
 
-
+#First find all the COM ports in the device manager. Note that it will find bluetooth controllers and all connected COM devices
 comlist = Serialfinder.serial_ports()
 
 window1 = mainwindow(comlist)
 window2_active = False
 
+#while loop
 while True:
     window, event, values = sg.read_all_windows()
     
@@ -45,6 +57,7 @@ while True:
         if window == window1:
             window.close()
             try:
+                #it gives the error that shared serial is not found which is why the Try except is here
                 shared_serial.close()
                 shared_serial = []
             except:
@@ -55,10 +68,10 @@ while True:
         zipppl = values.get("Browse")
         Comport = values.get("comselect")
         
-        #Unzipper
+        #Unzipper of all the contents of the PPL zip
         data, lines, vars_dict = Unzipper.read_zip_contents(zipppl)
         
-        #using the data gotten to split the lines per pump and 
+        #using the data gotten to split the lines per pump and job
         pump_jobs={}
         for i in vars_dict:
             if "_script" in i:
@@ -89,6 +102,7 @@ while True:
         y = 0
         threads = []
         
+        #Assigning pumps per thread and preparing to send the commands at the same time.
         for pump in pump_jobs:
             line = pump_jobs[pump].split('\n')
             name = pump
