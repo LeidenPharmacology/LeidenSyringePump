@@ -54,15 +54,6 @@ This module will handle **direct serial communication** with NE-1000 pumps via P
 
 - Realtime pump status polling (WIP)
 
----
-
-## 🛠️ Contributing
-
-This project is early-stage, experimental, and open to improvements! If you'd like to contribute:
-
-- Submit a pull request
-- Report bugs or missing features via Issues
-- Help refactor or structure the modules more cleanly
 
 ---
 
