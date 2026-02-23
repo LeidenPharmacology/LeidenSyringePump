@@ -65,4 +65,4 @@ This module will handle **direct serial communication** with NE-1000 pumps via P
 
 ## 🙏 Acknowledgments
 
-This project is inspired by the need for a more flexible and programmable interface to work with NE-1000 syringe pumps in research and automation settings. Built with 🧠 and ❤️ using [Streamlit](https://streamlit.io/) and `pyserial`.
+This project is inspired by the need for a more flexible and programmable interface to work with NE-1000 syringe pumps in research and automation settings. Built using [Streamlit](https://streamlit.io/) and `pyserial`.
