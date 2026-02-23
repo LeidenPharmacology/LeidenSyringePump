@@ -46,15 +46,13 @@ This module will handle **direct serial communication** with NE-1000 pumps via P
 
 - Detecting connected COM ports
 - Sending commands and reading responses
-- Executing `.PPL` files or manual commands
-- Support for command queuing and delays
+- Executing `.PPL` files
+- Batch execution across multiple pumps
+
 
 ### Planned Features
 
-- Command builder API
-- Realtime pump status polling
-- Logging and debug console
-- Batch execution across multiple pumps
+- Realtime pump status polling (WIP)
 
 ---
 
