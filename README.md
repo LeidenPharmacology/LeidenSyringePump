@@ -4,8 +4,8 @@ A collection of tools for controlling and programming syringe pumps — specific
 
 This repository currently includes:
 
-- **NE-1000 PPL Step Composer**: A Streamlit-based UI for visually creating `.PPL` programs.
-- **Python Serial Control Module** *(name TBD)*: A Python module to send commands directly to the NE-1000 pumps over a serial interface.
+- **NE-1000 PPLComposer**: A Streamlit-based UI for visually creating `.PPL` programs.
+- **Python Serial Pump Controller** : A Python module to send commands directly to the NE-1000 pumps over a serial interface.
 
 ---
 
@@ -40,7 +40,7 @@ streamlit run PPLcomposer.py
 
 ---
 
-## 🧪 Python Serial Pump Control (Work in Progress)
+## 🧪 Python Serial Pump Controller
 
 This module will handle **direct serial communication** with NE-1000 pumps via Python, including:
 
@@ -53,6 +53,13 @@ This module will handle **direct serial communication** with NE-1000 pumps via P
 ### Planned Features
 
 - Realtime pump status polling (WIP)
+- Advanced mode for control Headless pumps
+
+
+
+### Warning
+
+- Serial NE-1000 controller.py is already functioning but the Advancedmode NE-1000.py has a major bug with reading the CSV (due to a bug in the CSV creation). Still working on this
 
 
 ---
