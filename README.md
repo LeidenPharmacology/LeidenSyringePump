@@ -26,6 +26,7 @@ The **Step Composer** provides a visual way to build `.PPL` programs for the NE-
 - Parameter validation (e.g. volume/rate)
 - Visual warnings if required settings (e.g. diameter) are missing
 - Temporary in-session storage via Streamlit session state
+- CSV timeline for human reading (WIP, bugged)
 
 ### 🚀 Run the Composer Locally
 
